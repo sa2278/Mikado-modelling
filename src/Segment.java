@@ -25,6 +25,10 @@ public class Segment extends Point {
         double chordLength = (2 * Math.sqrt(200 * 200 - perpendicularDistance * perpendicularDistance));
         int halfChordLength = (int)(chordLength / 2);
 
+        //a new random angle is selected for the chord
+        Random rand = new Random();
+        double angle = rand.nextDouble() * 2 * Math.PI;
+
         int highX = point.getX() + (int) (halfChordLength * Math.cos(angle));
         int lowX = point.getX() - (int) (halfChordLength * Math.cos(angle));
 
@@ -36,9 +40,6 @@ public class Segment extends Point {
         pointPair.add(new Point(lowX,lowY));
 
         return pointPair;
-
-
-
 
 
 
