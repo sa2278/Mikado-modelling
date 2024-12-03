@@ -1,21 +1,21 @@
 import java.awt.geom.Point2D;
 
 public class RayPaths {
-    Point startPoint;
-    Point endPoint;
+    Point2D.Double startPoint;
+    Point2D.Double endPoint;
     Boolean isDrawn;
 
-    public RayPaths(Point startPoint, Point endPoint, Boolean isDrawn){
+    public RayPaths(Point2D.Double startPoint, Point2D.Double endPoint, Boolean isDrawn){
         this.startPoint = startPoint;
         this.endPoint = endPoint;
         this.isDrawn = isDrawn;
     }
 
-    public Point getStartPoint() {
+    public Point2D.Double getStartPoint() {
         return startPoint;
     }
 
-    public Point getEndPoint() {
+    public Point2D.Double getEndPoint() {
         return endPoint;
     }
 
@@ -25,5 +25,8 @@ public class RayPaths {
 
     public Boolean getDrawn() {
         return isDrawn;
+    }
+    public Boolean isEmpty(){
+        return  this.startPoint.x == this.endPoint.x && this.startPoint.y == this.endPoint.y;
     }
 }
