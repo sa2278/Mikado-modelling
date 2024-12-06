@@ -7,5 +7,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" exported="" name="github.sh0nk.matplotlib4j" level="project" />
+    <orderEntry type="library" exported="" name="jfree.jfreechart" level="project" />
   </component>
 </module>

@@ -22,6 +22,9 @@ public class Model extends JPanel {
     public ArrayList<Ellipse2D> objectsToDraw = new ArrayList<>();
     public ArrayList<Point2D.Double> intersections = new ArrayList<>();
 
+    public ArrayList<Double> distances = new ArrayList<>();
+    public ArrayList<Double> entropies = new ArrayList<>();
+
     @Override
     public Dimension getPreferredSize() {
         return new Dimension(1000, 1000);
@@ -38,8 +41,6 @@ public class Model extends JPanel {
 
         double padding = 10;
         double radius = (double) Math.min(this.getWidth(), this.getHeight()) / 2 - padding * 2;
-
-
 
         Ellipse2D outerEdge = new Ellipse2D.Double(padding, padding, radius * 2, radius * 2);
         g2.setStroke(new BasicStroke(4));
@@ -62,13 +63,9 @@ public class Model extends JPanel {
                 yObject = r * Math.sin(angle) + radius + padding;
 
                 currentSect += 0.25;
-
-                // g2.setColor(OBJECT_COLOR);
                 Ellipse2D innerObject = new Ellipse2D.Double(xObject - objectRadius, yObject - objectRadius, objectRadius * 2, objectRadius * 2);
                 objectsToDraw.add(innerObject);
-                //g2.draw(new Ellipse2D.Double(xObject - objectRadius, yObject - objectRadius, objectRadius * 2, objectRadius * 2));
                 objects.add(new Point2D.Double(xObject,yObject));
-                // to update the objects, each is itterated through and updated
             }
             // g2.setStroke(new BasicStroke(1));
 
@@ -78,9 +75,6 @@ public class Model extends JPanel {
                 double r = radius * Math.sqrt(Math.random());
                 double x = r * Math.cos(angle) + radius + padding;
                 double y = r * Math.sin(angle) + radius + padding;
-
-
-
 
                 double angle2 = Math.random() * 2 * Math.PI ;
                 Point2D.Double start = new Point2D.Double(x + 1000 * Math.cos(angle2), y + 1000 * Math.sin(angle2));
@@ -95,8 +89,6 @@ public class Model extends JPanel {
                     currentRay.setDrawn(Boolean.TRUE);
                 }
                 rays.add(currentRay);
-                // if the ray overlaps a circle is drawn is false, change the colour.
-                // TODO add a function that at the press of a key picks a random chord and flips it, and a way to determine step size
 
             }
 
@@ -114,6 +106,11 @@ public class Model extends JPanel {
 
 
             }
+
+            Double distance = objects.get(0).distance(objects.get(1));
+            Double entropy = calculateEntropy();
+            distances.add(distance);
+            entropies.add(entropy);
 
             g2.setStroke(new BasicStroke(4));
             g2.setColor(Color.BLACK);
@@ -126,13 +123,10 @@ public class Model extends JPanel {
             g2.setStroke(new BasicStroke(1));
 
             isPainted = Boolean.TRUE;
-            //TODO remove this
-            System.out.println("When is painted " + rays.size());
-
 
         }
         else{
-            findIntersections();
+
             for (int k = 0; k < RAYS_NUM; k++) {
                 RayPaths ray = rays.get(k);
                 Line2D temp = new Line2D.Double(ray.startPoint.getX(), ray.getStartPoint().getY(), ray.getEndPoint().getX(), ray.getEndPoint().getY());
@@ -146,20 +140,11 @@ public class Model extends JPanel {
                 }
 
             }
-            for(Point2D.Double object : objects){
+            Double distance = objects.get(0).distance(objects.get(1));
+            Double entropy = calculateEntropy();
+            distances.add(distance);
+            entropies.add(entropy);
 
-
-            }
-
-
-
-            //TODO, the circles can appear in any area in the defined region off drawn lines, therefore,
-            // establis a way to determine the lines near a point
-            // make this into a polygon of some kind
-            // make a way to update this polygon
-            // make a way to draw a circle in this polygon such that the configuration is valid
-
-            // find the nearest lines, get the intersections nearest the circle, and then draw a polygon using them
             g2.setStroke(new BasicStroke(4));
             g2.setColor(Color.BLACK);
             g2.draw(outerEdge);
@@ -178,64 +163,15 @@ public class Model extends JPanel {
 
     }
 
-    private boolean IsIntersecting(ArrayList<Point> circles, RayPaths currentRay){
-        for (Point circle : circles){
 
-
-        }
-        return Boolean.TRUE;
-
-    }
-
-    private ArrayList<RayPaths> split(RayPaths currentRay){
-        int firstIndex = -1;
-        Point2D.Double firstPoint = new Point2D.Double();
-        Line2D.Double currentLine = new Line2D.Double(currentRay.getStartPoint(), currentRay.getEndPoint());
-        for(int i = 0; i < rays.size(); i++){
-            Line2D.Double evaluatedLine = new Line2D.Double(rays.get(i).startPoint, rays.get(i).endPoint);
-            Point2D.Double point = intersection(currentLine, evaluatedLine);
-            if(point != null){
-                if(firstIndex == -1){
-                    firstIndex = i;
-                    firstPoint = point;
-                }
-                else{
-                    ArrayList<RayPaths> segments = new ArrayList<>();
-                    // this adds all the existing lines up to the split, then adds the split line and then the rest
-                    for(int j = 0; j < firstIndex; j++){
-                        RayPaths addedLine = new RayPaths(rays.get(j).startPoint, rays.get(j).endPoint, rays.get(j).isDrawn);
-                        segments.add(addedLine);
-                    }
-                    segments.add(new RayPaths(rays.get(firstIndex).startPoint, firstPoint, rays.get(firstIndex).isDrawn));
-                    segments.add(new RayPaths(firstPoint, point, rays.get(firstIndex).isDrawn));
-                    segments.add(new RayPaths(point, rays.get(firstIndex).endPoint, rays.get(firstIndex).isDrawn));
-                    for(int j = i +1; j < rays.size(); j++){
-                        RayPaths addedLine = new RayPaths(rays.get(j).startPoint, rays.get(j).endPoint, rays.get(j).isDrawn);
-                        segments.add(addedLine);
-                    }
-
-                    segments.removeIf(RayPaths::isEmpty);
-                    ArrayList<RayPaths> polygon = new ArrayList<>(segments);
-                    segments.clear();
-
-                    segments.add(new RayPaths(firstPoint, rays.get(firstIndex).endPoint, rays.get(firstIndex).isDrawn));
-                    for(int j = firstIndex + 1; j < i; j++){
-                        segments.add(rays.get(j));
-                    }
-                    segments.add(new RayPaths(rays.get(i).startPoint, point, rays.get(i).isDrawn));
-                    segments.add(new RayPaths(point, firstPoint, rays.get(i).isDrawn));
-
-                    segments.removeIf(RayPaths::isEmpty);
-                    polygon.addAll(segments);
-
-                    // generate the path from the points
-                    return polygon;
-                }
-
+    public Double calculateEntropy(){
+        int nLegal = 0;
+        for(RayPaths ray : rays){
+            if(ray.isDrawn){
+                nLegal += 1;
             }
         }
-        return null;
-
+        return Math.log(nLegal);
     }
 
 
@@ -315,6 +251,10 @@ public class Model extends JPanel {
             }
 
         }
+    }
+
+    public void generateGraph(){
+
     }
 
 
