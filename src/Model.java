@@ -8,14 +8,14 @@ import java.util.Random;
 import javax.swing.*;
 
 public class Model extends JPanel {
-    public static final int RAYS_NUM = 1000;
+    public static final int RAYS_NUM = 100000;
     public static final Color POINT_COLOR = Color.RED;
     public static final Color LINE_COLOR_DRAWN = Color.BLACK;
     public static final Color LINE_COLOR_UNDRAWN = Color.GRAY;
     public static final Color OBJECT_COLOR = Color.RED;
     public static final int OBJECT_NUM = 2;
     private  JFrame frame;
-    int objectRadius = 100;
+    int objectRadius = 75;
     public boolean isPainted = Boolean.FALSE;
     public ArrayList<RayPaths> rays = new ArrayList<>();
     public ArrayList<Point2D.Double> objects = new ArrayList<>();
@@ -24,6 +24,9 @@ public class Model extends JPanel {
 
     public ArrayList<Double> distances = new ArrayList<>();
     public ArrayList<Double> entropies = new ArrayList<>();
+    private double radius = 0;
+    private boolean movingTowards = Boolean.TRUE;
+    private double seperationFromPoint = 0;
 
     @Override
     public Dimension getPreferredSize() {
@@ -40,7 +43,7 @@ public class Model extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 
         double padding = 10;
-        double radius = (double) Math.min(this.getWidth(), this.getHeight()) / 2 - padding * 2;
+        radius = (double) Math.min(this.getWidth(), this.getHeight()) / 2 - padding * 2;
 
         Ellipse2D outerEdge = new Ellipse2D.Double(padding, padding, radius * 2, radius * 2);
         g2.setStroke(new BasicStroke(4));
@@ -52,23 +55,83 @@ public class Model extends JPanel {
         if(isPainted == Boolean.FALSE){
             double currentSect = 0;
             // g2.setStroke(new BasicStroke(4));
-            for (int i = 0; i < OBJECT_NUM; i++) {
-                double xObject = 0;
-                double yObject = 0;
 
-                // the new objects must not exist outside of the defined area, so the object diameter is subtracted
-                double angle = getRandomNumber(currentSect, currentSect + 0.25) * 2 * Math.PI;
-                double r = (radius - objectRadius - objectRadius) * Math.sqrt(Math.random());
-                xObject = r * Math.cos(angle) + radius + padding;
-                yObject = r * Math.sin(angle) + radius + padding;
+            // the new objects must not exist outside of the defined area, so the object diameter is subtracted
 
-                currentSect += 0.25;
-                Ellipse2D innerObject = new Ellipse2D.Double(xObject - objectRadius, yObject - objectRadius, objectRadius * 2, objectRadius * 2);
-                objectsToDraw.add(innerObject);
-                objects.add(new Point2D.Double(xObject,yObject));
-            }
+            double r = (radius - objectRadius - 4);
+            seperationFromPoint = r;
+
+            double xObject1 = r * Math.cos(0) + radius + padding;
+            double yObject1 = r * Math.sin(0) + radius + padding;
+            Ellipse2D innerObject = new Ellipse2D.Double(xObject1 - objectRadius, yObject1 - objectRadius, objectRadius * 2, objectRadius * 2);
+            objectsToDraw.add(innerObject);
+            objects.add(new Point2D.Double(xObject1,yObject1));
+
+
+            double xObject2 = r * Math.cos(Math.PI) + radius + padding;
+            innerObject = new Ellipse2D.Double(xObject2 - objectRadius, yObject1 - objectRadius, objectRadius * 2, objectRadius * 2);
+            objectsToDraw.add(innerObject);
+            objects.add(new Point2D.Double(xObject2,yObject1));
+
+            System.out.println(xObject1 + " , " + yObject1 + " and " + xObject2 + " , " + yObject1);
             // g2.setStroke(new BasicStroke(1));
 
+            for (int i = 0; i < RAYS_NUM; i++) {
+                Random rand = new Random();
+                double angle = Math.random() * 2 * Math.PI ;
+                r = radius * Math.sqrt(Math.random());
+                double x = r * Math.cos(angle) + radius + padding;
+                double y = r * Math.sin(angle) + radius + padding;
+
+                double angle2 = Math.random() * 2 * Math.PI ;
+                Point2D.Double start = new Point2D.Double(x + 1000 * Math.cos(angle2), y + 1000 * Math.sin(angle2));
+                Point2D.Double end = new Point2D.Double((x - 1000 * Math.cos(angle2)), (y - 1000* Math.sin(angle2)));
+                Line2D temp = new Line2D.Double(start.getX(), start.getY(), end.getX(), end.getY());
+                RayPaths currentRay = (new RayPaths(start, end, Boolean.FALSE));
+                for (int j = 0; j < OBJECT_NUM; j++){
+                    if(Math.abs(temp.ptLineDist(objects.get(j).getX(), objects.get(j).getY())) < objectRadius ){
+                        currentRay.setDrawn(Boolean.FALSE);
+                        break;
+                    }
+                    currentRay.setDrawn(Boolean.TRUE);
+                }
+                rays.add(currentRay);
+
+            }
+            // this is limited to 1000 for processing purposes
+            for (int k = 0; k < 1000; k++) {
+                RayPaths ray = rays.get(k);
+                Line2D temp = new Line2D.Double(ray.startPoint.getX(), ray.getStartPoint().getY(), ray.getEndPoint().getX(), ray.getEndPoint().getY());
+                if (ray.isDrawn == Boolean.TRUE){
+                    g2.setColor(LINE_COLOR_DRAWN);
+                    g2.draw(temp);
+                }
+                else{
+                    g2.setColor(LINE_COLOR_UNDRAWN);
+                    g2.draw(temp);
+                }
+            }
+
+            Double distance = objects.get(0).distance(objects.get(1));
+            Double entropy = calculateEntropy();
+            distances.add(distance);
+            entropies.add(entropy);
+
+            g2.setStroke(new BasicStroke(4));
+            g2.setColor(Color.BLACK);
+            g2.draw(outerEdge);
+            g2.setColor(OBJECT_COLOR);
+            g2.setStroke(new BasicStroke(2));
+            for(int ob = 0; ob < OBJECT_NUM; ob++){
+                g2.draw(objectsToDraw.get(ob));
+            }
+            g2.setStroke(new BasicStroke(1));
+
+            isPainted = Boolean.TRUE;
+
+        }
+        else{
+            rays.clear();
             for (int i = 0; i < RAYS_NUM; i++) {
                 Random rand = new Random();
                 double angle = Math.random() * 2 * Math.PI ;
@@ -92,7 +155,7 @@ public class Model extends JPanel {
 
             }
 
-            for (int k = 0; k < RAYS_NUM; k++) {
+            for (int k = 0; k < 1000; k++) {
                 RayPaths ray = rays.get(k);
                 Line2D temp = new Line2D.Double(ray.startPoint.getX(), ray.getStartPoint().getY(), ray.getEndPoint().getX(), ray.getEndPoint().getY());
                 if (ray.isDrawn == Boolean.TRUE){
@@ -103,42 +166,6 @@ public class Model extends JPanel {
                     g2.setColor(LINE_COLOR_UNDRAWN);
                     g2.draw(temp);
                 }
-
-
-            }
-
-            Double distance = objects.get(0).distance(objects.get(1));
-            Double entropy = calculateEntropy();
-            distances.add(distance);
-            entropies.add(entropy);
-
-            g2.setStroke(new BasicStroke(4));
-            g2.setColor(Color.BLACK);
-            g2.draw(outerEdge);
-            g2.setColor(OBJECT_COLOR);
-            g2.setStroke(new BasicStroke(2));
-            for(int ob = 0; ob < OBJECT_NUM; ob++){
-                g2.draw(objectsToDraw.get(ob));
-            }
-            g2.setStroke(new BasicStroke(1));
-
-            isPainted = Boolean.TRUE;
-
-        }
-        else{
-
-            for (int k = 0; k < RAYS_NUM; k++) {
-                RayPaths ray = rays.get(k);
-                Line2D temp = new Line2D.Double(ray.startPoint.getX(), ray.getStartPoint().getY(), ray.getEndPoint().getX(), ray.getEndPoint().getY());
-                if (ray.isDrawn == Boolean.TRUE){
-                    g2.setColor(LINE_COLOR_DRAWN);
-                    g2.draw(temp);
-                }
-                else{
-                    g2.setColor(LINE_COLOR_UNDRAWN);
-                    g2.draw(temp);
-                }
-
             }
             Double distance = objects.get(0).distance(objects.get(1));
             Double entropy = calculateEntropy();
@@ -175,60 +202,13 @@ public class Model extends JPanel {
     }
 
 
-
-    private Point2D.Double closestPoint(Point2D.Double centrePoint){
-        double distance = 1000;
-        Point2D.Double closestPoint = new Point2D.Double();
-        for (Point2D.Double currentPoint : intersections) {
-            double currentDistance = centrePoint.distance(currentPoint);
-            if (currentDistance < distance) {
-                distance = currentDistance;
-                closestPoint = currentPoint;
-            }
-        }
-        return closestPoint;
-
-    }
-
-    public static Point2D.Double intersection(Line2D a, Line2D b) {
-        double x1 = a.getX1(), y1 = a.getY1(), x2 = a.getX2(), y2 = a.getY2(), x3 = b.getX1(), y3 = b.getY1(),
-                x4 = b.getX2(), y4 = b.getY2();
-        double d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-        if (d == 0) {
-            return null;
-        }
-
-        double xi = ((x3 - x4) * (x1 * y2 - y1 * x2) - (x1 - x2) * (x3 * y4 - y3 * x4)) / d;
-        double yi = ((y3 - y4) * (x1 * y2 - y1 * x2) - (y1 - y2) * (x3 * y4 - y3 * x4)) / d;
-
-        return new Point2D.Double(xi, yi);
-    }
-
-    private void findIntersections(){
-        intersections.clear();
-        for (int i = 0; i < rays.size(); i++) {
-            for (int j = i + 1; j < rays.size(); j++) {
-                RayPaths ray1 = rays.get(i);
-                RayPaths ray2 = rays.get(j);
-                Line2D.Double line1 = new Line2D.Double(ray1.startPoint.getX(), ray1.getStartPoint().getY(), ray1.getEndPoint().getX(), ray1.getEndPoint().getY());
-                Line2D.Double line2 = new Line2D.Double(ray2.startPoint.getX(), ray2.getStartPoint().getY(), ray2.getEndPoint().getX(), ray2.getEndPoint().getY());
-                if (line1.intersectsLine(line2) && ray1.isDrawn && ray2.isDrawn) {
-                    Point2D.Double intersection = intersection(line1, line2);
-                    if (intersection != null) {
-                        intersections.add(intersection);
-                    }
-                }
-            }
-        }
-
-    }
-
     private double getRandomNumber(double min, double max) {
         return (double) ((Math.random() * (max - min)) + min);
     }
     public void update(int batchSize){
         for( int iter = 0; iter < batchSize; iter++){
-            // update selects a random ray from the rays and flips update if it is not intrsecting
+            // update selects a random ray from the rays and flips update if it is not intersecting
+            updateObject();
             double index = getRandomNumber(0, RAYS_NUM - 1);
             System.out.println("in update" + rays.size());
 
@@ -249,13 +229,52 @@ public class Model extends JPanel {
                 }
 
             }
+            for (int j = 0; j < OBJECT_NUM; j++){
+                for(RayPaths checkRays : rays){
+                    Line2D checkLine = new Line2D.Double(checkRays.startPoint.getX(), checkRays.startPoint.getY(), checkRays.endPoint.getX(), checkRays.endPoint.getY());
+                    if(Math.abs(checkLine.ptLineDist(objects.get(j).getX(), objects.get(j).getY())) < objectRadius ){
+                        checkRays.setDrawn(Boolean.FALSE);
+                    }
+                }
+            }
+
 
         }
     }
 
-    public void generateGraph(){
+    public void updateObject(){
+        if(movingTowards){
+            seperationFromPoint -= 0.1;
+            if( seperationFromPoint < (0)){
+                movingTowards = Boolean.FALSE;
+            }
+        }
+        else{
+            seperationFromPoint += 0.1;
+            if( seperationFromPoint > (radius - objectRadius - 4)){
+                movingTowards = Boolean.TRUE;
+            }
+
+        }
+
+        double xObject1 = seperationFromPoint * Math.cos(0) + radius + 10;
+        double yObject1 = seperationFromPoint * Math.sin(0) + radius + 10;
+        Ellipse2D innerObject = new Ellipse2D.Double(xObject1 - objectRadius, yObject1 - objectRadius, objectRadius * 2, objectRadius * 2);
+        objectsToDraw.set(0, innerObject);
+        objects.set(0, new Point2D.Double(xObject1,yObject1));
+
+
+        double xObject2 = seperationFromPoint * Math.cos(Math.PI) + radius + 10;
+        innerObject = new Ellipse2D.Double(xObject2 - objectRadius, yObject1 - objectRadius, objectRadius * 2, objectRadius * 2);
+        objectsToDraw.set(1, innerObject);
+        objects.set(1, new Point2D.Double(xObject2,yObject1));
+
 
     }
+
+
+
+
 
 
 
